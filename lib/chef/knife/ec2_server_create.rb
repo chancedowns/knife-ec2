@@ -690,12 +690,9 @@ class Chef
 
       def s3_secret_tmpfile
         @s3_secret_tmpfile ||= begin
-          case URI(Chef::Config[:knife][:secret_file]).scheme
-          when 's3'
-            tmpfile = Tempfile.new('secret_file')
-            File.open(tmpfile, 'w') { |f| f.write(s3_secret_file) }
-            tmpfile
-          end
+          tempfile = Tempfile.new('secret_file')
+          File.open(tempfile, 'w') { |f| f.write(s3_secret_file) }
+          tempfile
         end
       end
 
