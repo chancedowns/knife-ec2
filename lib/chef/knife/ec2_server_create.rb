@@ -677,6 +677,36 @@ class Chef
         end
       end
 
+      def s3_secret_path
+        @s3_secret_path ||= begin
+          if URI(Chef::Config[:knife][:secret_file]).scheme == 'file'
+            URI(Chef::Config[:knife][:secret_file]).path
+          else
+            s3_secret_tmpfile.path
+          end
+        end
+
+      end
+
+      def s3_secret_tmpfile
+        @s3_secret_tmpfile ||= begin
+          case URI(Chef::Config[:knife][:secret_file]).scheme
+          when 's3'
+            tmpfile = Tempfile.new('secret_file')
+            File.open(tmpfile, 'w') { |f| f.write(s3_secret_file) }
+            tmpfile
+          end
+        end
+      end
+
+      def s3_secret_file
+        @s3_secret_file ||= begin
+          Chef::Knife::S3Source.fetch(Chef::Config[:knife][:secret_file])
+        end
+      end
+
+
+
       def bootstrap_common_params(bootstrap)
         bootstrap.config[:run_list] = config[:run_list]
         bootstrap.config[:bootstrap_version] = locate_config_value(:bootstrap_version)
@@ -688,9 +718,9 @@ class Chef
         bootstrap.config[:first_boot_attributes] = locate_config_value(:first_boot_attributes)
         bootstrap.config[:first_boot_attributes_from_file] = locate_config_value(:first_boot_attributes_from_file)
         bootstrap.config[:encrypted_data_bag_secret] = s3_secret || locate_config_value(:secret)
-        bootstrap.config[:encrypted_data_bag_secret_file] = locate_config_value(:secret_file)
+        bootstrap.config[:encrypted_data_bag_secret_file] = s3_secret_path || locate_config_value(:secret_file)
         bootstrap.config[:secret] = s3_secret || locate_config_value(:secret)
-        bootstrap.config[:secret_file] = locate_config_value(:secret_file)
+        bootstrap.config[:secret_file] = s3_secret_path || locate_config_value(:secret_file)
         bootstrap.config[:node_ssl_verify_mode] = locate_config_value(:node_ssl_verify_mode)
         bootstrap.config[:node_verify_api_cert] = locate_config_value(:node_verify_api_cert)
         bootstrap.config[:bootstrap_no_proxy] = locate_config_value(:bootstrap_no_proxy)
